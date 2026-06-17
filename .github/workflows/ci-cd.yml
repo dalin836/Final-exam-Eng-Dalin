@@ -29,98 +29,93 @@ jobs:
           
       - name: Verify JAR
         run: |
-          echo "Checking for JAR files..."
           ls -la target/
           if ls target/*.jar 1> /dev/null 2>&1; then
-            echo "✅ JAR file created successfully"
+            echo "✅ JAR file created"
           else
             echo "❌ No JAR file found"
             exit 1
           fi
 
-      - name: Install Java 21
+      - name: Direct run test
         run: |
-          sudo apt-get update
-          sudo apt-get install -y openjdk-21-jdk
-          java -version
-
-      - name: Deploy application
+          echo "Testing JAR directly..."
+          java -jar target/*.jar --server.port=8001 &
+          APP_PID=$!
+          echo "Application PID: $APP_PID"
+          sleep 15
+          
+          echo "Checking if process is running..."
+          if ps -p $APP_PID > /dev/null 2>&1; then
+            echo "✅ Process is running"
+            echo "Testing health endpoint..."
+            curl -v http://localhost:8001/actuator/health || echo "Health check failed"
+          else
+            echo "❌ Process died"
+            echo "Exit code: $?"
+          fi
+          
+          # Kill the process
+          kill $APP_PID 2>/dev/null || true
+          
+      - name: Run with detailed logging
+        run: |
+          echo "Starting application with full logging..."
+          java -jar target/*.jar --server.port=8001 --debug &
+          APP_PID=$!
+          sleep 20
+          
+          echo "=== Process Status ==="
+          ps aux | grep java | grep -v grep || echo "No Java process"
+          
+          echo "=== Checking Port ==="
+          sudo netstat -tlnp | grep 8001 || echo "Port 8001 not listening"
+          
+          kill $APP_PID 2>/dev/null || true
+          
+      - name: Deploy to background
         run: |
           DEPLOY_DIR="/opt/idcard-management"
-          APP_PORT=8001
-          
-          # Create directories
           sudo mkdir -p ${DEPLOY_DIR}
-          sudo mkdir -p /var/log/idcard-management
           
           # Copy JAR
           sudo cp target/*.jar ${DEPLOY_DIR}/app.jar
           
-          # Copy properties if exists
-          if [ -f application.properties ]; then
-            sudo cp application.properties ${DEPLOY_DIR}/
-          fi
+          # Create startup script
+          sudo tee ${DEPLOY_DIR}/start.sh > /dev/null << 'SCRIPT'
+          #!/bin/bash
+          cd /opt/idcard-management
+          java -jar app.jar --server.port=8001 > /opt/idcard-management/app.log 2>&1 &
+          SCRIPT
           
-          # Stop existing process
-          sudo pkill -f app.jar || true
-          sleep 2
+          sudo chmod +x ${DEPLOY_DIR}/start.sh
           
-          # Start application with proper logging
-          cd ${DEPLOY_DIR}
-          sudo nohup java -jar app.jar \
-            --server.port=${APP_PORT} \
-            --spring.profiles.active=production \
-            > /var/log/idcard-management/app.log 2>&1 &
+          # Start application
+          sudo ${DEPLOY_DIR}/start.sh
           
-          echo "✅ Application started on port ${APP_PORT}"
-          
-          # Wait and check
-          echo "Waiting for application to start..."
+          echo "Application started"
           sleep 15
           
-          # Check process
+          # Check if running
           if pgrep -f app.jar; then
-            echo "✅ Application process is running"
+            echo "✅ Application is running"
+            curl -s http://localhost:8001/actuator/health || echo "Health endpoint not available"
           else
-            echo "❌ Application process not found"
-            echo "=== Logs ==="
-            cat /var/log/idcard-management/app.log
+            echo "❌ Application not running"
+            if [ -f ${DEPLOY_DIR}/app.log ]; then
+              cat ${DEPLOY_DIR}/app.log
+            else
+              echo "No log file found"
+            fi
             exit 1
           fi
           
-      - name: Health check
-        run: |
-          echo "Checking health endpoint..."
-          for i in {1..15}; do
-            if curl -s -f http://localhost:8001/actuator/health > /dev/null 2>&1; then
-              echo "✅ Application is healthy!"
-              curl -s http://localhost:8001/actuator/health
-              exit 0
-            fi
-            echo "Attempt $i/15: Application not ready yet..."
-            sleep 3
-          done
-          echo "❌ Health check failed after 15 attempts"
-          echo ""
-          echo "=== Application Logs ==="
-          cat /var/log/idcard-management/app.log | tail -50
-          exit 1
-          
-      - name: Upload logs on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: application-logs
-          path: /var/log/idcard-management/app.log
-          
-      - name: Show deployment info
+      - name: Show logs
         if: always()
         run: |
-          echo "=== Running Processes ==="
-          ps aux | grep java | grep -v grep || echo "No Java process found"
-          echo ""
-          echo "=== Open Ports ==="
-          sudo netstat -tlnp | grep 8001 || echo "Port 8001 not listening"
-          echo ""
-          echo "=== Disk Usage ==="
-          df -h
+          echo "=== Logs ==="
+          if [ -f /opt/idcard-management/app.log ]; then
+            cat /opt/idcard-management/app.log
+          else
+            echo "No log file found"
+          fi

@@ -1,148 +1,22 @@
----
-- name: Deploy Spring Boot Application
-  hosts: all
-  become: yes
-  gather_facts: yes
-  
-  vars:
-    app_name: "idcard-management"
-    deploy_dir: "/opt/{{ app_name }}"
-    app_port: "8001"
-    java_home: "/usr/lib/jvm/java-21-openjdk-amd64"
+- name: Deploy with output capture
+  run: |
+    sudo mkdir -p /opt/idcard-management
+    sudo cp target/*.jar /opt/idcard-management/app.jar
     
-  tasks:
-    - name: Display deployment info
-      debug:
-        msg: 
-          - "============================================"
-          - "Deploying {{ app_name }}"
-          - "Version: {{ app_version | default('latest') }}"
-          - "Directory: {{ deploy_dir }}"
-          - "Port: {{ app_port }}"
-          - "Java: {{ java_home }}"
-          - "============================================"
-          
-    - name: Ensure Java 21 is installed
-      apt:
-        name: openjdk-21-jdk
-        state: present
-        update_cache: yes
-        
-    - name: Create deployment directory
-      file:
-        path: "{{ deploy_dir }}"
-        state: directory
-        mode: '0755'
-        
-    - name: Create logs directory
-      file:
-        path: "/var/log/{{ app_name }}"
-        state: directory
-        mode: '0755'
-        
-    - name: Find JAR file
-      find:
-        paths: "{{ playbook_dir }}/target"
-        patterns: "*.jar"
-        file_type: file
-      register: jar_files
-      delegate_to: localhost
-      run_once: yes
-      
-    - name: Fail if no JAR
-      fail:
-        msg: "No JAR file found in target/"
-      when: jar_files.files | length == 0
-      
-    - name: Get latest JAR
-      set_fact:
-        jar_file: "{{ jar_files.files | sort(attribute='mtime') | last }}"
-      delegate_to: localhost
-      run_once: yes
-      
-    - name: Copy JAR file
-      copy:
-        src: "{{ jar_file.path }}"
-        dest: "{{ deploy_dir }}/{{ app_name }}.jar"
-        mode: '0644'
-        
-    - name: Copy application.properties
-      copy:
-        src: "{{ playbook_dir }}/application.properties"
-        dest: "{{ deploy_dir }}/application.properties"
-        mode: '0644'
-      ignore_errors: yes
-      
-    - name: Stop existing application
-      shell: |
-        pkill -f {{ app_name }} || true
-        sleep 2
-      ignore_errors: yes
-      
-    - name: Start application with Java 21
-      shell: |
-        cd {{ deploy_dir }}
-        export JAVA_HOME={{ java_home }}
-        export PATH=$JAVA_HOME/bin:$PATH
-        nohup {{ java_home }}/bin/java -jar {{ app_name }}.jar \
-          --server.port={{ app_port }} \
-          --spring.config.location={{ deploy_dir }}/application.properties \
-          > /var/log/{{ app_name }}/app.log 2>&1 &
-      async: 10
-      poll: 2
-      
-    - name: Wait for application to start
-      wait_for:
-        port: "{{ app_port }}"
-        timeout: 60
-        delay: 5
-      ignore_errors: yes
-      
-    - name: Check health endpoint
-      uri:
-        url: "http://localhost:{{ app_port }}/actuator/health"
-        method: GET
-        status_code: 200
-        timeout: 10
-      register: health
-      until: health.status == 200
-      retries: 10
-      delay: 3
-      ignore_errors: yes
-      
-    - name: Show health status
-      debug:
-        msg: "Health check: {{ health.status == 200 | ternary('✅ OK', '❌ Failed') }}"
-      
-    - name: Show Java version used
-      command: "{{ java_home }}/bin/java -version"
-      register: java_version
-      ignore_errors: yes
-      
-    - name: Display Java version
-      debug:
-        msg: "{{ java_version.stderr_lines }}"
-      when: java_version.stderr is defined
-      
-    - name: Show application logs
-      command: tail -20 /var/log/{{ app_name }}/app.log
-      register: app_log
-      ignore_errors: yes
-      
-    - name: Display logs
-      debug:
-        msg: "{{ app_log.stdout_lines }}"
-      when: app_log.stdout is defined
-      
-    - name: Deployment complete
-      debug:
-        msg: |
-          ============================================
-          ✅ DEPLOYMENT COMPLETE
-          ============================================
-          Application: {{ app_name }}
-          Port: {{ app_port }}
-          Directory: {{ deploy_dir }}
-          Logs: /var/log/{{ app_name }}/app.log
-          Health: http://localhost:{{ app_port }}/actuator/health
-          ============================================
+    # Run and capture output
+    cd /opt/idcard-management
+    sudo java -jar app.jar --server.port=8001 2>&1 | tee app.log &
+    JOB_PID=$!
+    
+    echo "Started with PID: $JOB_PID"
+    sleep 10
+    
+    # Check if process exists
+    if ps -p $JOB_PID > /dev/null 2>&1; then
+      echo "✅ Process running"
+    else
+      echo "❌ Process died"
+      echo "=== Full log ==="
+      cat app.log
+      exit 1
+    fi
