@@ -1,0 +1,44 @@
+# backup.yml
+---
+- name: Backup MySQL Database
+  hosts: localhost
+  connection: local
+  vars:
+    backup_dir: ./backups
+    mysql_container: mysql-db
+    mysql_user: root
+    mysql_password: Hello@123
+    mysql_db: B-Eng_Dalin-db
+
+  tasks:
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Create backup with timestamp
+      set_fact:
+        backup_file: "{{ backup_dir }}/backup_{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}.sql.gz"
+
+    - name: Backup database
+      shell: |
+        docker exec {{ mysql_container }} mysqldump -u {{ mysql_user }} -p'{{ mysql_password }}' \
+        --single-transaction --routines --triggers {{ mysql_db }} | gzip > {{ backup_file }}
+
+    - name: Display backup info
+      stat:
+        path: "{{ backup_file }}"
+      register: backup_stats
+
+    - name: Show backup details
+      debug:
+        msg: |
+          Backup created: {{ backup_file }}
+          Size: {{ backup_stats.stat.size | int / 1024 / 1024 | round(2) }} MB
+          Created: {{ ansible_date_time.date }} {{ ansible_date_time.time }}
+
+    - name: Cleanup old backups (keep last 10)
+      shell: |
+        ls -t {{ backup_dir }}/backup_*.sql.gz | tail -n +11 | xargs rm -f
+      ignore_errors: yes

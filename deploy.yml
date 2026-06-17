@@ -1,0 +1,212 @@
+---
+- name: Deploy Spring Boot Application
+  hosts: web
+  become: yes
+  gather_facts: yes
+  
+  vars:
+    app_name: "idcard-management"
+    app_version: "{{ lookup('env', 'GITHUB_SHA') | default('latest', true) }}"
+    deploy_dir: "/opt/{{ app_name }}"
+    backup_dir: "/opt/backups/{{ app_name }}"
+    app_port: "{{ lookup('env', 'APP_PORT') | default('8089', true) }}"
+    db_password: "{{ lookup('env', 'DB_PASSWORD') | default('Hello@123', true) }}"
+    
+  tasks:
+    - name: Display deployment information
+      debug:
+        msg: 
+          - "============================================"
+          - "Deploying {{ app_name }}"
+          - "Version: {{ app_version }}"
+          - "Deployment Directory: {{ deploy_dir }}"
+          - "Application Port: {{ app_port }}"
+          - "============================================"
+
+    - name: Ensure Java is installed
+      apt:
+        name: openjdk-21-jdk
+        state: present
+        update_cache: yes
+
+    - name: Ensure required packages are installed
+      apt:
+        name:
+          - git
+          - wget
+          - curl
+          - mysql-client
+          - net-tools
+        state: present
+
+    - name: Create deployment directory
+      file:
+        path: "{{ deploy_dir }}"
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Create application logs directory
+      file:
+        path: "/var/log/{{ app_name }}"
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Find JAR file
+      find:
+        paths: "{{ playbook_dir }}/target"
+        patterns: "*.jar"
+        file_type: file
+      register: jar_files
+      delegate_to: localhost
+      run_once: yes
+
+    - name: Fail if no JAR found
+      fail:
+        msg: "No JAR file found in target directory"
+      when: jar_files.files | length == 0
+
+    - name: Get the latest JAR file
+      set_fact:
+        jar_file: "{{ jar_files.files | sort(attribute='mtime') | last }}"
+      delegate_to: localhost
+      run_once: yes
+
+    - name: Display JAR file information
+      debug:
+        msg: "Deploying JAR: {{ jar_file.path }}"
+
+    - name: Backup existing application
+      shell: |
+        if [ -f "{{ deploy_dir }}/{{ app_name }}.jar" ]; then
+          cp "{{ deploy_dir }}/{{ app_name }}.jar" "{{ backup_dir }}/{{ app_name }}_{{ ansible_date_time.epoch }}.jar"
+          echo "Backup created"
+        else
+          echo "No existing JAR to backup"
+        fi
+      register: backup_result
+      changed_when: "'Backup created' in backup_result.stdout"
+
+    - name: Stop existing application service
+      systemd:
+        name: "{{ app_name }}"
+        state: stopped
+      ignore_errors: yes
+
+    - name: Copy application JAR file
+      copy:
+        src: "{{ jar_file.path }}"
+        dest: "{{ deploy_dir }}/{{ app_name }}.jar"
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Create application.properties with environment variables
+      template:
+        src: application.properties.j2
+        dest: "{{ deploy_dir }}/application.properties"
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Create systemd service file
+      template:
+        src: app.service.j2
+        dest: "/etc/systemd/system/{{ app_name }}.service"
+        mode: '0644'
+      notify:
+        - reload_systemd
+        - restart_application
+
+    - name: Create application user
+      user:
+        name: "{{ app_name }}"
+        system: yes
+        create_home: no
+        shell: /usr/sbin/nologin
+      ignore_errors: yes
+
+    - name: Set proper ownership
+      file:
+        path: "{{ deploy_dir }}"
+        owner: "{{ app_name }}"
+        group: "{{ app_name }}"
+        recurse: yes
+      ignore_errors: yes
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and start service
+      systemd:
+        name: "{{ app_name }}"
+        enabled: yes
+        state: started
+
+    - name: Wait for application to start
+      wait_for:
+        port: "{{ app_port }}"
+        timeout: 120
+        delay: 5
+      register: app_started
+
+    - name: Check application health
+      uri:
+        url: "http://localhost:{{ app_port }}/actuator/health"
+        method: GET
+        status_code: 200
+        timeout: 10
+      register: health_check
+      until: health_check.status == 200
+      retries: 10
+      delay: 5
+      ignore_errors: yes
+
+    - name: Check application info
+      uri:
+        url: "http://localhost:{{ app_port }}/actuator/info"
+        method: GET
+        status_code: 200
+        timeout: 10
+      register: app_info
+      ignore_errors: yes
+
+    - name: Display deployment summary
+      debug:
+        msg: |
+          ============================================
+          ✅ DEPLOYMENT COMPLETED SUCCESSFULLY
+          ============================================
+          Application: {{ app_name }}
+          Version: {{ app_version }}
+          Port: {{ app_port }}
+          URL: http://{{ ansible_default_ipv4.address }}:{{ app_port }}
+          Deployment Directory: {{ deploy_dir }}
+          Logs: /var/log/{{ app_name }}
+          Health Status: {{ health_check.status == 200 | ternary('✅ Healthy', '❌ Check logs') }}
+          Info: {{ app_info.content | default('Not available') }}
+          ============================================
+
+  handlers:
+    - name: reload_systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: restart_application
+      systemd:
+        name: "{{ app_name }}"
+        state: restarted
+        daemon_reload: yes
+      listen: reload_systemd

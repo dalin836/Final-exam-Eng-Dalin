@@ -1,0 +1,165 @@
+2026-06-17 21:31:59,838 p=569451 u=dalin n=ansible INFO| ansible [core 2.20.1]
+  config file = /home/dalin/Documents/demo/ansible.cfg
+  configured module search path = ['/home/dalin/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+  ansible python module location = /usr/lib/python3/dist-packages/ansible
+  ansible collection location = /home/dalin/.ansible/collections:/usr/share/ansible/collections
+  executable location = /usr/bin/ansible
+  python version = 3.14.4 (main, Apr  8 2026, 04:02:31) [GCC 15.2.0] (/usr/bin/python3)
+  jinja version = 3.1.6
+  pyyaml version = 6.0.3 (with libyaml v0.2.5)
+2026-06-17 21:31:59,838 p=569451 u=dalin n=ansible INFO| Using /home/dalin/Documents/demo/ansible.cfg as config file
+2026-06-17 21:31:59,938 p=569451 u=dalin n=ansible INFO| host_list declined parsing /home/dalin/Documents/demo/inventory.yml as it did not pass its verify_file() method
+2026-06-17 21:31:59,938 p=569451 u=dalin n=ansible INFO| script declined parsing /home/dalin/Documents/demo/inventory.yml as it did not pass its verify_file() method
+2026-06-17 21:31:59,940 p=569451 u=dalin n=ansible WARNING| [WARNING]: Found duplicate mapping key 'ansible_user'.
+Origin: /home/dalin/Documents/demo/inventory.yml:8:7
+
+6       ansible_host: 127.0.0.1
+7       ansible_port: 2222
+8       ansible_user: root
+        ^ column 7
+
+Using last defined value only.
+
+
+2026-06-17 21:31:59,943 p=569451 u=dalin n=ansible INFO| Parsed /home/dalin/Documents/demo/inventory.yml inventory source with yaml plugin
+2026-06-17 21:32:00,014 p=569451 u=dalin n=ansible INFO| Skipping callback 'default', as we already have a stdout callback.
+2026-06-17 21:32:00,014 p=569451 u=dalin n=ansible INFO| Skipping callback 'oneline', as we already have a stdout callback.
+2026-06-17 21:32:00,077 p=569451 u=dalin n=ansible INFO| redirecting (type: connection) ansible.builtin.docker to community.docker.docker
+2026-06-17 21:32:00,191 p=569451 u=dalin n=ansible INFO| <127.0.0.1> ESTABLISH DOCKER CONNECTION FOR USER: root
+2026-06-17 21:32:00,191 p=569451 u=dalin n=ansible INFO| <127.0.0.1> EXEC ['/usr/local/bin/docker', b'exec', b'-u', 'root', b'-i', '127.0.0.1', '/bin/sh', '-c', '/bin/sh -c \'( umask 77 && mkdir -p "` echo /tmp/ansible `"&& mkdir "` echo /tmp/ansible/ansible-tmp-1781706720.0989127-569463-51003279069093 `" && echo ansible-tmp-1781706720.0989127-569463-51003279069093="` echo /tmp/ansible/ansible-tmp-1781706720.0989127-569463-51003279069093 `" ) && sleep 0\'']
+2026-06-17 21:32:00,225 p=569451 u=dalin n=ansible ERROR| [ERROR]: Task failed: Failed to create temporary directory. In some cases, you may have been able to authenticate and did not have permissions on the target directory. Consider changing the remote tmp path in ansible.cfg to a path rooted in "/tmp", for more error information use -vvv. Failed command was: _ShellCommand(command='( umask 77 && mkdir -p "` echo /tmp/ansible `"&& mkdir "` echo /tmp/ansible/ansible-tmp-1781706720.0989127-569463-51003279069093 `" && echo ansible-tmp-1781706720.0989127-569463-51003279069093="` echo /tmp/ansible/ansible-tmp-1781706720.0989127-569463-51003279069093 `" )', input_data=None), exited with result 1
+Origin: <adhoc 'ping' task>
+
+{'action': 'ping', 'args': {}, 'timeout': 0, 'async_val': 0, 'poll': 15}
+
+
+2026-06-17 21:32:00,225 p=569451 u=dalin n=ansible INFO| web-server | UNREACHABLE! => {
+    "changed": false,
+    "msg": "Task failed: Failed to create temporary directory. In some cases, you may have been able to authenticate and did not have permissions on the target directory. Consider changing the remote tmp path in ansible.cfg to a path rooted in \"/tmp\", for more error information use -vvv. Failed command was: _ShellCommand(command='( umask 77 && mkdir -p \"` echo /tmp/ansible `\"&& mkdir \"` echo /tmp/ansible/ansible-tmp-1781706720.0989127-569463-51003279069093 `\" && echo ansible-tmp-1781706720.0989127-569463-51003279069093=\"` echo /tmp/ansible/ansible-tmp-1781706720.0989127-569463-51003279069093 `\" )', input_data=None), exited with result 1",
+    "unreachable": true
+}
+2026-06-17 21:34:51,149 p=571171 u=dalin n=ansible INFO| ansible [core 2.20.1]
+  config file = /home/dalin/Documents/demo/ansible.cfg
+  configured module search path = ['/home/dalin/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+  ansible python module location = /usr/lib/python3/dist-packages/ansible
+  ansible collection location = /home/dalin/.ansible/collections:/usr/share/ansible/collections
+  executable location = /usr/bin/ansible
+  python version = 3.14.4 (main, Apr  8 2026, 04:02:31) [GCC 15.2.0] (/usr/bin/python3)
+  jinja version = 3.1.6
+  pyyaml version = 6.0.3 (with libyaml v0.2.5)
+2026-06-17 21:34:51,150 p=571171 u=dalin n=ansible INFO| Using /home/dalin/Documents/demo/ansible.cfg as config file
+2026-06-17 21:34:51,255 p=571171 u=dalin n=ansible INFO| host_list declined parsing /home/dalin/Documents/demo/inventory.yml as it did not pass its verify_file() method
+2026-06-17 21:34:51,255 p=571171 u=dalin n=ansible INFO| script declined parsing /home/dalin/Documents/demo/inventory.yml as it did not pass its verify_file() method
+2026-06-17 21:34:51,257 p=571171 u=dalin n=ansible WARNING| [WARNING]: Found duplicate mapping key 'ansible_user'.
+Origin: /home/dalin/Documents/demo/inventory.yml:8:7
+
+6       ansible_host: 127.0.0.1
+7       ansible_port: 2222
+8       ansible_user: root
+        ^ column 7
+
+Using last defined value only.
+
+
+2026-06-17 21:34:51,260 p=571171 u=dalin n=ansible INFO| Parsed /home/dalin/Documents/demo/inventory.yml inventory source with yaml plugin
+2026-06-17 21:34:51,322 p=571171 u=dalin n=ansible INFO| Skipping callback 'default', as we already have a stdout callback.
+2026-06-17 21:34:51,322 p=571171 u=dalin n=ansible INFO| Skipping callback 'oneline', as we already have a stdout callback.
+2026-06-17 21:34:51,386 p=571171 u=dalin n=ansible INFO| redirecting (type: connection) ansible.builtin.docker to community.docker.docker
+2026-06-17 21:34:51,497 p=571171 u=dalin n=ansible INFO| <127.0.0.1> ESTABLISH DOCKER CONNECTION FOR USER: root
+2026-06-17 21:34:51,497 p=571171 u=dalin n=ansible INFO| <127.0.0.1> EXEC ['/usr/local/bin/docker', b'exec', b'-u', 'root', b'-i', '127.0.0.1', '/bin/sh', '-c', '/bin/sh -c \'( umask 77 && mkdir -p "` echo /tmp/ansible `"&& mkdir "` echo /tmp/ansible/ansible-tmp-1781706891.4107497-571225-104782003453092 `" && echo ansible-tmp-1781706891.4107497-571225-104782003453092="` echo /tmp/ansible/ansible-tmp-1781706891.4107497-571225-104782003453092 `" ) && sleep 0\'']
+2026-06-17 21:34:51,532 p=571171 u=dalin n=ansible ERROR| [ERROR]: Task failed: Failed to create temporary directory. In some cases, you may have been able to authenticate and did not have permissions on the target directory. Consider changing the remote tmp path in ansible.cfg to a path rooted in "/tmp", for more error information use -vvv. Failed command was: _ShellCommand(command='( umask 77 && mkdir -p "` echo /tmp/ansible `"&& mkdir "` echo /tmp/ansible/ansible-tmp-1781706891.4107497-571225-104782003453092 `" && echo ansible-tmp-1781706891.4107497-571225-104782003453092="` echo /tmp/ansible/ansible-tmp-1781706891.4107497-571225-104782003453092 `" )', input_data=None), exited with result 1
+Origin: <adhoc 'ping' task>
+
+{'action': 'ping', 'args': {}, 'timeout': 0, 'async_val': 0, 'poll': 15}
+
+
+2026-06-17 21:34:51,532 p=571171 u=dalin n=ansible INFO| web-server | UNREACHABLE! => {
+    "changed": false,
+    "msg": "Task failed: Failed to create temporary directory. In some cases, you may have been able to authenticate and did not have permissions on the target directory. Consider changing the remote tmp path in ansible.cfg to a path rooted in \"/tmp\", for more error information use -vvv. Failed command was: _ShellCommand(command='( umask 77 && mkdir -p \"` echo /tmp/ansible `\"&& mkdir \"` echo /tmp/ansible/ansible-tmp-1781706891.4107497-571225-104782003453092 `\" && echo ansible-tmp-1781706891.4107497-571225-104782003453092=\"` echo /tmp/ansible/ansible-tmp-1781706891.4107497-571225-104782003453092 `\" )', input_data=None), exited with result 1",
+    "unreachable": true
+}
+2026-06-17 21:39:38,832 p=574336 u=dalin n=ansible INFO| Using /home/dalin/Documents/demo/ansible.cfg as config file
+2026-06-17 21:39:38,932 p=574336 u=dalin n=ansible WARNING| [WARNING]: Unable to parse /home/dalin/Documents/demo/inventory_local.yml as an inventory source
+
+2026-06-17 21:39:38,933 p=574336 u=dalin n=ansible WARNING| [WARNING]: No inventory was parsed, only implicit localhost is available
+
+2026-06-17 21:39:38,940 p=574336 u=dalin n=ansible WARNING| [WARNING]: provided hosts list is empty, only localhost is available. Note that the implicit localhost does not match 'all'
+
+2026-06-17 21:39:39,293 p=574336 u=dalin n=ansible INFO| PLAY [Backup MySQL Database] ***************************************************
+2026-06-17 21:39:39,312 p=574336 u=dalin n=ansible INFO| TASK [Gathering Facts] *********************************************************
+2026-06-17 21:39:41,008 p=574336 u=dalin n=ansible INFO| ok: [localhost]
+2026-06-17 21:39:41,014 p=574336 u=dalin n=ansible INFO| TASK [Create backup directory] *************************************************
+2026-06-17 21:39:41,668 p=574336 u=dalin n=ansible INFO| changed: [localhost] => {"changed": true, "gid": 1000, "group": "dalin", "mode": "0755", "owner": "dalin", "path": "./backups", "size": 4096, "state": "directory", "uid": 1000}
+2026-06-17 21:39:41,679 p=574336 u=dalin n=ansible INFO| TASK [Create backup with timestamp] ********************************************
+2026-06-17 21:39:41,751 p=574336 u=dalin n=ansible WARNING| [WARNING]: Deprecation warnings can be disabled by setting `deprecation_warnings=False` in ansible.cfg.
+
+2026-06-17 21:39:41,751 p=574336 u=dalin n=ansible INFO| [DEPRECATION WARNING]: INJECT_FACTS_AS_VARS default to `True` is deprecated, top-level facts will not be auto injected after the change. This feature will be removed from ansible-core version 2.24.
+Origin: /home/dalin/Documents/demo/backup.yml:22:22
+
+20     - name: Create backup with timestamp
+21       set_fact:
+22         backup_file: "{{ backup_dir }}/backup_{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':'...
+                        ^ column 22
+
+Use `ansible_facts["fact_name"]` (no `ansible_` prefix) instead.
+
+
+2026-06-17 21:39:41,752 p=574336 u=dalin n=ansible INFO| ok: [localhost] => {"ansible_facts": {"backup_file": "./backups/backup_2026-06-17_213940.sql.gz"}, "changed": false}
+2026-06-17 21:39:41,759 p=574336 u=dalin n=ansible INFO| TASK [Backup database] *********************************************************
+2026-06-17 21:39:42,510 p=574336 u=dalin n=ansible INFO| changed: [localhost] => {"changed": true, "cmd": "docker exec mysql-db mysqldump -u root -p'Hello@123' --single-transaction --routines --triggers B-Eng_Dalin-db | gzip > ./backups/backup_2026-06-17_213940.sql.gz\n", "delta": "0:00:00.195446", "end": "2026-06-17 21:39:42.453781", "msg": "", "rc": 0, "start": "2026-06-17 21:39:42.258335", "stderr": "mysqldump: [Warning] Using a password on the command line interface can be insecure.", "stderr_lines": ["mysqldump: [Warning] Using a password on the command line interface can be insecure."], "stdout": "", "stdout_lines": []}
+2026-06-17 21:39:42,521 p=574336 u=dalin n=ansible INFO| TASK [Display backup info] *****************************************************
+2026-06-17 21:39:43,133 p=574336 u=dalin n=ansible INFO| ok: [localhost] => {"changed": false, "stat": {"atime": 1781707182.261982, "attr_flags": "e", "attributes": ["extents"], "block_size": 4096, "blocks": 8, "charset": "binary", "checksum": "a17ca8d36b0a30555c11ae7443ae27e2d6c5f01f", "ctime": 1781707182.4519904, "dev": 64513, "device_type": 0, "executable": false, "exists": true, "gid": 1000, "gr_name": "dalin", "inode": 2382184, "isblk": false, "ischr": false, "isdir": false, "isfifo": false, "isgid": false, "islnk": false, "isreg": true, "issock": false, "isuid": false, "mimetype": "application/gzip", "mode": "0664", "mtime": 1781707182.4519904, "nlink": 1, "path": "./backups/backup_2026-06-17_213940.sql.gz", "pw_name": "dalin", "readable": true, "rgrp": true, "roth": true, "rusr": true, "size": 478, "uid": 1000, "version": "2797641506", "wgrp": true, "woth": false, "writeable": true, "wusr": true, "xgrp": false, "xoth": false, "xusr": false}}
+2026-06-17 21:39:43,140 p=574336 u=dalin n=ansible INFO| TASK [Show backup details] *****************************************************
+2026-06-17 21:39:43,190 p=574336 u=dalin n=ansible INFO| [DEPRECATION WARNING]: INJECT_FACTS_AS_VARS default to `True` is deprecated, top-level facts will not be auto injected after the change. This feature will be removed from ansible-core version 2.24.
+Origin: /home/dalin/Documents/demo/backup.yml:36:14
+
+34     - name: Show backup details
+35       debug:
+36         msg: |
+                ^ column 14
+
+Use `ansible_facts["fact_name"]` (no `ansible_` prefix) instead.
+
+
+2026-06-17 21:39:43,190 p=574336 u=dalin n=ansible INFO| ok: [localhost] => {
+    "msg": "Backup created: ./backups/backup_2026-06-17_213940.sql.gz\nSize: 0.0004558563232421875 MB\nCreated: 2026-06-17 21:39:40\n"
+}
+2026-06-17 21:39:43,196 p=574336 u=dalin n=ansible INFO| TASK [Cleanup old backups (keep last 10)] **************************************
+2026-06-17 21:39:43,717 p=574336 u=dalin n=ansible INFO| changed: [localhost] => {"changed": true, "cmd": "ls -t ./backups/backup_*.sql.gz | tail -n +11 | xargs rm -f\n", "delta": "0:00:00.014184", "end": "2026-06-17 21:39:43.655973", "msg": "", "rc": 0, "start": "2026-06-17 21:39:43.641789", "stderr": "", "stderr_lines": [], "stdout": "", "stdout_lines": []}
+2026-06-17 21:39:43,718 p=574336 u=dalin n=ansible INFO| PLAY RECAP *********************************************************************
+2026-06-17 21:39:43,719 p=574336 u=dalin n=ansible INFO| localhost                  : ok=7    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+2026-06-17 23:45:54,039 p=629780 u=dalin n=ansible INFO| ansible-playbook [core 2.20.1]
+  config file = /home/dalin/Documents/demo/ansible.cfg
+  configured module search path = ['/home/dalin/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+  ansible python module location = /usr/lib/python3/dist-packages/ansible
+  ansible collection location = /home/dalin/.ansible/collections:/usr/share/ansible/collections
+  executable location = /usr/bin/ansible-playbook
+  python version = 3.14.4 (main, Apr  8 2026, 04:02:31) [GCC 15.2.0] (/usr/bin/python3)
+  jinja version = 3.1.6
+  pyyaml version = 6.0.3 (with libyaml v0.2.5)
+2026-06-17 23:45:54,039 p=629780 u=dalin n=ansible INFO| Using /home/dalin/Documents/demo/ansible.cfg as config file
+2026-06-17 23:45:54,133 p=629780 u=dalin n=ansible INFO| host_list declined parsing /home/dalin/Documents/demo/inventory.ini as it did not pass its verify_file() method
+2026-06-17 23:45:54,134 p=629780 u=dalin n=ansible INFO| Skipping due to inventory source not existing or not being readable by the current user
+2026-06-17 23:45:54,134 p=629780 u=dalin n=ansible INFO| script declined parsing /home/dalin/Documents/demo/inventory.ini as it did not pass its verify_file() method
+2026-06-17 23:45:54,134 p=629780 u=dalin n=ansible INFO| auto declined parsing /home/dalin/Documents/demo/inventory.ini as it did not pass its verify_file() method
+2026-06-17 23:45:54,134 p=629780 u=dalin n=ansible INFO| Skipping due to inventory source not existing or not being readable by the current user
+2026-06-17 23:45:54,134 p=629780 u=dalin n=ansible INFO| yaml declined parsing /home/dalin/Documents/demo/inventory.ini as it did not pass its verify_file() method
+2026-06-17 23:45:54,134 p=629780 u=dalin n=ansible INFO| Skipping due to inventory source not existing or not being readable by the current user
+2026-06-17 23:45:54,134 p=629780 u=dalin n=ansible INFO| ini declined parsing /home/dalin/Documents/demo/inventory.ini as it did not pass its verify_file() method
+2026-06-17 23:45:54,134 p=629780 u=dalin n=ansible INFO| Skipping due to inventory source not existing or not being readable by the current user
+2026-06-17 23:45:54,134 p=629780 u=dalin n=ansible INFO| toml declined parsing /home/dalin/Documents/demo/inventory.ini as it did not pass its verify_file() method
+2026-06-17 23:45:54,134 p=629780 u=dalin n=ansible WARNING| [WARNING]: Unable to parse /home/dalin/Documents/demo/inventory.ini as an inventory source
+
+2026-06-17 23:45:54,134 p=629780 u=dalin n=ansible WARNING| [WARNING]: No inventory was parsed, only implicit localhost is available
+
+2026-06-17 23:45:54,142 p=629780 u=dalin n=ansible WARNING| [WARNING]: provided hosts list is empty, only localhost is available. Note that the implicit localhost does not match 'all'
+
+2026-06-17 23:45:54,528 p=629780 u=dalin n=ansible INFO| Skipping callback 'minimal', as we already have a stdout callback.
+2026-06-17 23:45:54,528 p=629780 u=dalin n=ansible INFO| Skipping callback 'oneline', as we already have a stdout callback.
+2026-06-17 23:45:54,528 p=629780 u=dalin n=ansible INFO| PLAYBOOK: deploy.yml ********************************************************************************************************************************************************************
+2026-06-17 23:45:54,528 p=629780 u=dalin n=ansible INFO| 1 plays in deploy.yml
+2026-06-17 23:45:54,528 p=629780 u=dalin n=ansible WARNING| [WARNING]: Could not match supplied host pattern, ignoring: web-server
+
+2026-06-17 23:45:54,530 p=629780 u=dalin n=ansible INFO| PLAY [Deploy Spring Boot Application to Web Server] *************************************************************************************************************************************
+2026-06-17 23:45:54,530 p=629780 u=dalin n=ansible INFO| skipping: no hosts matched
+2026-06-17 23:45:54,530 p=629780 u=dalin n=ansible INFO| PLAY RECAP ******************************************************************************************************************************************************************************

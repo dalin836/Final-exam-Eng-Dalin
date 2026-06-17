@@ -1,0 +1,12 @@
+
+# Global variables for all hosts
+java_version: 21
+maven_version: 3.9.6
+app_name: idcard-management
+app_dir: /opt/idcard-management
+backup_dir: /opt/backups
+mysql_host: mysql-db
+mysql_port: 3306
+mysql_db: B-Eng_Dalin-db
+mysql_user: root
+mysql_password: Hello@123

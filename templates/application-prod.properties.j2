@@ -1,0 +1,22 @@
+[Unit]
+Description={{ app_name }} Spring Boot Application
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory={{ deploy_dir }}
+ExecStart=/usr/bin/java -jar {{ deploy_dir }}/{{ app_name }}.jar
+ExecStop=/bin/kill -15 $MAINPID
+SuccessExitStatus=143
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Environment variables
+Environment="SPRING_PROFILES_ACTIVE=production"
+Environment="JAVA_OPTS=-Xmx512m -Xms256m"
+
+[Install]
+WantedBy=multi-user.target
