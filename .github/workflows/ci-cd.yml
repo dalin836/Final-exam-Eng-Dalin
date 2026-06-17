@@ -3,13 +3,11 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build and Package
+  build-and-deploy:
+    name: Build and Deploy
     runs-on: ubuntu-latest
     
     steps:
@@ -23,7 +21,7 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Clean and Build (skip tests)
+      - name: Build application
         run: |
           mvn clean
           mvn compile
@@ -31,50 +29,66 @@ jobs:
           
       - name: Verify JAR
         run: |
+          echo "Checking for JAR files..."
+          ls -la target/
           if ls target/*.jar 1> /dev/null 2>&1; then
             echo "✅ JAR file created successfully"
-            ls -la target/*.jar
           else
             echo "❌ No JAR file found"
             exit 1
           fi
 
-      - name: Upload JAR artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: application-jar
-          path: target/*.jar
-          retention-days: 7
-
-  deploy:
-    name: Deploy to Web Server
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Download JAR artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: application-jar
-          path: target/
-          
       - name: Install Ansible
         run: |
           sudo apt-get update
-          sudo apt-get install -y ansible sshpass
+          sudo apt-get install -y ansible
+          ansible --version
           
-      - name: Create inventory file
+      - name: Create inventory
         run: |
           cat > inventory.ini << 'INV'
           [web]
-          localhost ansible_connection=local
+          localhost ansible_connection=local ansible_python_interpreter=/usr/bin/python3
           INV
+          cat inventory.ini
           
-      - name: Run Ansible deployment
+      - name: Deploy with Ansible
         run: |
           ansible-playbook -i inventory.ini deploy.yml \
-            --extra-vars "app_version=${GITHUB_SHA::7}"
+            --extra-vars "app_version=${GITHUB_SHA::7}" \
+            -vvv
+          
+      - name: Health check
+        run: |
+          echo "Waiting for application to be ready..."
+          sleep 10
+          for i in {1..10}; do
+            if curl -s -f http://localhost:8001/actuator/health > /dev/null 2>&1; then
+              echo "✅ Application is healthy!"
+              curl -s http://localhost:8001/actuator/health | jq . || cat
+              exit 0
+            fi
+            echo "Attempt $i/10: Application not ready yet..."
+            sleep 3
+          done
+          echo "❌ Health check failed"
+          exit 1
+          
+      - name: Show application logs
+        if: always()
+        run: |
+          echo "=== Application Logs ==="
+          if [ -f /var/log/idcard-management/app.log ]; then
+            cat /var/log/idcard-management/app.log | tail -50
+          else
+            echo "No log file found"
+          fi
+          
+      - name: Check running processes
+        if: always()
+        run: |
+          echo "=== Running Processes ==="
+          ps aux | grep idcard-management | grep -v grep || echo "No process found"
+          echo ""
+          echo "=== Open Ports ==="
+          sudo netstat -tlnp | grep 8001 || echo "Port 8001 not listening"
