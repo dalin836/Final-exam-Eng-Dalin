@@ -8,6 +8,7 @@
     app_name: "idcard-management"
     deploy_dir: "/opt/{{ app_name }}"
     app_port: "8001"
+    java_home: "/usr/lib/jvm/java-21-openjdk-amd64"
     
   tasks:
     - name: Display deployment info
@@ -18,9 +19,10 @@
           - "Version: {{ app_version | default('latest') }}"
           - "Directory: {{ deploy_dir }}"
           - "Port: {{ app_port }}"
+          - "Java: {{ java_home }}"
           - "============================================"
           
-    - name: Ensure Java is installed
+    - name: Ensure Java 21 is installed
       apt:
         name: openjdk-21-jdk
         state: present
@@ -77,10 +79,12 @@
         sleep 2
       ignore_errors: yes
       
-    - name: Start application
+    - name: Start application with Java 21
       shell: |
         cd {{ deploy_dir }}
-        nohup java -jar {{ app_name }}.jar \
+        export JAVA_HOME={{ java_home }}
+        export PATH=$JAVA_HOME/bin:$PATH
+        nohup {{ java_home }}/bin/java -jar {{ app_name }}.jar \
           --server.port={{ app_port }} \
           --spring.config.location={{ deploy_dir }}/application.properties \
           > /var/log/{{ app_name }}/app.log 2>&1 &
@@ -109,6 +113,16 @@
     - name: Show health status
       debug:
         msg: "Health check: {{ health.status == 200 | ternary('✅ OK', '❌ Failed') }}"
+      
+    - name: Show Java version used
+      command: "{{ java_home }}/bin/java -version"
+      register: java_version
+      ignore_errors: yes
+      
+    - name: Display Java version
+      debug:
+        msg: "{{ java_version.stderr_lines }}"
+      when: java_version.stderr is defined
       
     - name: Show application logs
       command: tail -20 /var/log/{{ app_name }}/app.log

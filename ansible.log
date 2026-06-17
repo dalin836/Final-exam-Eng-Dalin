@@ -170,3 +170,36 @@ Use `ansible_facts["fact_name"]` (no `ansible_` prefix) instead.
 2026-06-18 01:04:17,751 p=666638 u=dalin n=ansible INFO| PLAY [Deploy Spring Boot Application] ******************************************
 2026-06-18 01:04:17,751 p=666638 u=dalin n=ansible INFO| skipping: no hosts matched
 2026-06-18 01:04:17,751 p=666638 u=dalin n=ansible INFO| PLAY RECAP *********************************************************************
+2026-06-18 01:21:43,615 p=675419 u=dalin n=ansible WARNING| [WARNING]: provided hosts list is empty, only localhost is available. Note that the implicit localhost does not match 'all'
+
+2026-06-18 01:21:43,834 p=675419 u=dalin n=ansible WARNING| [WARNING]: Could not match supplied host pattern, ignoring: web
+
+2026-06-18 01:21:43,835 p=675419 u=dalin n=ansible INFO| PLAY [Deploy Spring Boot Application] ******************************************
+2026-06-18 01:21:43,835 p=675419 u=dalin n=ansible INFO| skipping: no hosts matched
+2026-06-18 01:21:43,835 p=675419 u=dalin n=ansible INFO| PLAY RECAP *********************************************************************
+2026-06-18 01:22:01,356 p=675558 u=dalin n=ansible INFO| ansible-playbook [core 2.20.1]
+  config file = /home/dalin/Documents/demo/ansible.cfg
+  configured module search path = ['/home/dalin/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+  ansible python module location = /usr/lib/python3/dist-packages/ansible
+  ansible collection location = /home/dalin/.ansible/collections:/usr/share/ansible/collections
+  executable location = /usr/bin/ansible-playbook
+  python version = 3.14.4 (main, Apr  8 2026, 04:02:31) [GCC 15.2.0] (/usr/bin/python3)
+  jinja version = 3.1.6
+  pyyaml version = 6.0.3 (with libyaml v0.2.5)
+2026-06-18 01:22:01,356 p=675558 u=dalin n=ansible INFO| Using /home/dalin/Documents/demo/ansible.cfg as config file
+2026-06-18 01:22:01,439 p=675558 u=dalin n=ansible INFO| host_list declined parsing /home/dalin/Documents/demo/inventory.ini as it did not pass its verify_file() method
+2026-06-18 01:22:01,440 p=675558 u=dalin n=ansible INFO| script declined parsing /home/dalin/Documents/demo/inventory.ini as it did not pass its verify_file() method
+2026-06-18 01:22:01,440 p=675558 u=dalin n=ansible INFO| auto declined parsing /home/dalin/Documents/demo/inventory.ini as it did not pass its verify_file() method
+2026-06-18 01:22:01,440 p=675558 u=dalin n=ansible INFO| yaml declined parsing /home/dalin/Documents/demo/inventory.ini as it did not pass its verify_file() method
+2026-06-18 01:22:01,440 p=675558 u=dalin n=ansible INFO| Parsed /home/dalin/Documents/demo/inventory.ini inventory source with ini plugin
+2026-06-18 01:22:01,445 p=675558 u=dalin n=ansible WARNING| [WARNING]: provided hosts list is empty, only localhost is available. Note that the implicit localhost does not match 'all'
+
+2026-06-18 01:22:01,671 p=675558 u=dalin n=ansible INFO| Skipping callback 'minimal', as we already have a stdout callback.
+2026-06-18 01:22:01,671 p=675558 u=dalin n=ansible INFO| Skipping callback 'oneline', as we already have a stdout callback.
+2026-06-18 01:22:01,671 p=675558 u=dalin n=ansible INFO| PLAYBOOK: deploy.yml ***********************************************************
+2026-06-18 01:22:01,671 p=675558 u=dalin n=ansible INFO| 1 plays in deploy.yml
+2026-06-18 01:22:01,671 p=675558 u=dalin n=ansible WARNING| [WARNING]: Could not match supplied host pattern, ignoring: web
+
+2026-06-18 01:22:01,673 p=675558 u=dalin n=ansible INFO| PLAY [Deploy Spring Boot Application] ******************************************
+2026-06-18 01:22:01,673 p=675558 u=dalin n=ansible INFO| skipping: no hosts matched
+2026-06-18 01:22:01,673 p=675558 u=dalin n=ansible INFO| PLAY RECAP *********************************************************************

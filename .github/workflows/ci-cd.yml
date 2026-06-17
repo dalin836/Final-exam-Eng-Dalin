@@ -38,9 +38,14 @@ jobs:
             exit 1
           fi
 
-      - name: Install Ansible
+      - name: Install Java 21 for runtime
         run: |
           sudo apt-get update
+          sudo apt-get install -y openjdk-21-jdk
+          java -version
+
+      - name: Install Ansible
+        run: |
           sudo apt-get install -y ansible
           ansible --version
           
@@ -50,7 +55,6 @@ jobs:
           [web]
           localhost ansible_connection=local ansible_python_interpreter=/usr/bin/python3
           INV
-          cat inventory.ini
           
       - name: Deploy with Ansible
         run: |
@@ -65,7 +69,7 @@ jobs:
           for i in {1..10}; do
             if curl -s -f http://localhost:8001/actuator/health > /dev/null 2>&1; then
               echo "✅ Application is healthy!"
-              curl -s http://localhost:8001/actuator/health | jq . || cat
+              curl -s http://localhost:8001/actuator/health
               exit 0
             fi
             echo "Attempt $i/10: Application not ready yet..."
@@ -90,5 +94,5 @@ jobs:
           echo "=== Running Processes ==="
           ps aux | grep idcard-management | grep -v grep || echo "No process found"
           echo ""
-          echo "=== Open Ports ==="
-          sudo netstat -tlnp | grep 8001 || echo "Port 8001 not listening"
+          echo "=== Java Version ==="
+          java -version

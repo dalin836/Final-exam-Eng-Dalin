@@ -1,3 +1,14 @@
+#!/bin/bash
+
+cd ~/Documents/demo
+
+echo "========================================="
+echo "Fixing Java Version Issue"
+echo "========================================="
+
+# 1. Update pom.xml
+echo "1. Updating pom.xml with Java 21..."
+cat > pom.xml << 'POM'
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -94,3 +105,19 @@
         </plugins>
     </build>
 </project>
+POM
+
+# 2. Update workflow
+echo "2. Updating GitHub Actions workflow..."
+
+# 3. Clean and rebuild
+echo "3. Cleaning and rebuilding..."
+mvn clean package -DskipTests=true
+
+echo ""
+echo "========================================="
+echo "✅ Fix complete! Push to GitHub:"
+echo "git add ."
+echo "git commit -m 'Fix Java version to 21'"
+echo "git push origin main"
+echo "========================================="
