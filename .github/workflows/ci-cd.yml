@@ -7,115 +7,33 @@ on:
 
 jobs:
   build-and-deploy:
-    name: Build and Deploy
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: 21
           distribution: 'temurin'
           cache: maven
-
-      - name: Build application
+      - name: Build
+        run: mvn clean package -DskipTests=true
+      - name: Deploy
         run: |
-          mvn clean
-          mvn compile
-          mvn package -DskipTests=true
-          
-      - name: Verify JAR
-        run: |
-          ls -la target/
-          if ls target/*.jar 1> /dev/null 2>&1; then
-            echo "✅ JAR file created"
-          else
-            echo "❌ No JAR file found"
-            exit 1
-          fi
-
-      - name: Direct run test
-        run: |
-          echo "Testing JAR directly..."
-          java -jar target/*.jar --server.port=8001 &
-          APP_PID=$!
-          echo "Application PID: $APP_PID"
-          sleep 15
-          
-          echo "Checking if process is running..."
-          if ps -p $APP_PID > /dev/null 2>&1; then
-            echo "✅ Process is running"
-            echo "Testing health endpoint..."
-            curl -v http://localhost:8001/actuator/health || echo "Health check failed"
-          else
-            echo "❌ Process died"
-            echo "Exit code: $?"
-          fi
-          
-          # Kill the process
-          kill $APP_PID 2>/dev/null || true
-          
-      - name: Run with detailed logging
-        run: |
-          echo "Starting application with full logging..."
-          java -jar target/*.jar --server.port=8001 --debug &
-          APP_PID=$!
-          sleep 20
-          
-          echo "=== Process Status ==="
-          ps aux | grep java | grep -v grep || echo "No Java process"
-          
-          echo "=== Checking Port ==="
-          sudo netstat -tlnp | grep 8001 || echo "Port 8001 not listening"
-          
-          kill $APP_PID 2>/dev/null || true
-          
-      - name: Deploy to background
-        run: |
-          DEPLOY_DIR="/opt/idcard-management"
-          sudo mkdir -p ${DEPLOY_DIR}
-          
-          # Copy JAR
-          sudo cp target/*.jar ${DEPLOY_DIR}/app.jar
-          
-          # Create startup script
-          sudo tee ${DEPLOY_DIR}/start.sh > /dev/null << 'SCRIPT'
-          #!/bin/bash
+          sudo mkdir -p /opt/idcard-management
+          sudo cp target/*.jar /opt/idcard-management/app.jar
+          sudo pkill -f app.jar || true
           cd /opt/idcard-management
-          java -jar app.jar --server.port=8001 > /opt/idcard-management/app.log 2>&1 &
-          SCRIPT
-          
-          sudo chmod +x ${DEPLOY_DIR}/start.sh
-          
-          # Start application
-          sudo ${DEPLOY_DIR}/start.sh
-          
-          echo "Application started"
+          sudo ${JAVA_HOME}/bin/java -jar app.jar --server.port=8001 > app.log 2>&1 &
           sleep 15
-          
-          # Check if running
           if pgrep -f app.jar; then
-            echo "✅ Application is running"
-            curl -s http://localhost:8001/actuator/health || echo "Health endpoint not available"
+            echo "✅ Running"
+            curl http://localhost:8001/actuator/health
           else
-            echo "❌ Application not running"
-            if [ -f ${DEPLOY_DIR}/app.log ]; then
-              cat ${DEPLOY_DIR}/app.log
-            else
-              echo "No log file found"
-            fi
+            echo "❌ Failed"
+            cat app.log
             exit 1
           fi
-          
       - name: Show logs
         if: always()
-        run: |
-          echo "=== Logs ==="
-          if [ -f /opt/idcard-management/app.log ]; then
-            cat /opt/idcard-management/app.log
-          else
-            echo "No log file found"
-          fi
+        run: cat /opt/idcard-management/app.log || echo "No log"
