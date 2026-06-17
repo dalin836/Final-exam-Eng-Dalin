@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+
+  web:
+    image: ubuntu:24.04
+    container_name: web-server
+
+    ports:
+      - "2222:22"
+
+    tty: true
+
+    command: >
+      bash -c "
+      apt update &&
+      apt install -y git openssh-server wget &&
+      mkdir /var/run/sshd &&
+      echo 'root:' | chpasswd &&
+      /usr/sbin/sshd &&
+      tail -f /dev/null
+      "
+
+    depends_on:
+      - mysql
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+
+    ports:
+      - "8001:8001"
+
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/default.conf
+
+    depends_on:
+      - web
+
+  mysql:
+    image: mysql:8
+
+    container_name: mysql-db
+
+    environment:
+      MYSQL_ROOT_PASSWORD: Hello@123
+      MYSQL_DATABASE: B-Eng_Dalin-db
+
+    ports:
+      - "3306:3306"
