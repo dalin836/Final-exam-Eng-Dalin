@@ -2,14 +2,14 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
-  build-and-test:
-    name: Build and Test
+  build:
+    name: Build and Package
     runs-on: ubuntu-latest
     
     steps:
@@ -23,15 +23,17 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build (skip tests for now)
+      - name: Clean and Build (skip tests)
         run: |
-          mvn clean compile
+          mvn clean
+          mvn compile
           mvn package -DskipTests=true
           
-      - name: Check JAR
+      - name: Verify JAR
         run: |
-          if [ -f target/*.jar ]; then
-            echo "✅ JAR file found"
+          if ls target/*.jar 1> /dev/null 2>&1; then
+            echo "✅ JAR file created successfully"
+            ls -la target/*.jar
           else
             echo "❌ No JAR file found"
             exit 1
@@ -42,18 +44,19 @@ jobs:
         with:
           name: application-jar
           path: target/*.jar
+          retention-days: 7
 
   deploy:
-    name: Deploy
-    needs: build-and-test
+    name: Deploy to Web Server
+    needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Download JAR
+      - name: Download JAR artifact
         uses: actions/download-artifact@v4
         with:
           name: application-jar
@@ -62,8 +65,16 @@ jobs:
       - name: Install Ansible
         run: |
           sudo apt-get update
-          sudo apt-get install -y ansible
+          sudo apt-get install -y ansible sshpass
           
-      - name: Deploy
+      - name: Create inventory file
         run: |
-          ansible-playbook -i inventory.ini deploy.yml
+          cat > inventory.ini << 'INV'
+          [web]
+          localhost ansible_connection=local
+          INV
+          
+      - name: Run Ansible deployment
+        run: |
+          ansible-playbook -i inventory.ini deploy.yml \
+            --extra-vars "app_version=${GITHUB_SHA::7}"
