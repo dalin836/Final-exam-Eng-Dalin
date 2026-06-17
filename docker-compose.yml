@@ -1,24 +1,18 @@
-version: '3.8'
-
 services:
-
   web:
     image: ubuntu:24.04
     container_name: web-server
     ports:
-      - "2222:22"
+      - "2223:22"
+      - "8001:8001"
     tty: true
     command: >
       bash -c "
-      apt-get update &&
-      apt-get install -y git openssh-server wget openjdk-21-jdk maven mysql-client &&
-      mkdir -p /var/run/sshd &&
-      echo 'root:Hello@123' | chpasswd &&
-      sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config &&
-      sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config &&
-      mkdir -p /root/.ssh &&
-      chmod 700 /root/.ssh &&
-      service ssh start &&
+      apt update &&
+      apt install -y git openssh-server wget curl &&
+      mkdir /var/run/sshd &&
+      echo 'root:' | chpasswd &&
+      /usr/sbin/sshd &&
       tail -f /dev/null
       "
     depends_on:
@@ -28,7 +22,7 @@ services:
     image: nginx:latest
     container_name: nginx
     ports:
-      - "8443:8001"
+      - "8444:8089"
     volumes:
       - ./nginx/default.conf:/etc/nginx/default.conf
     depends_on:
@@ -41,9 +35,25 @@ services:
       MYSQL_ROOT_PASSWORD: Hello@123
       MYSQL_DATABASE: B-Eng_Dalin-db
     ports:
-      - "3307:3306"
+      - "3309:3306"
     volumes:
-      - mysql-data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: phpmyadmin
+    environment:
+      PMA_HOST: mysql-db
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+      UPLOAD_LIMIT: 100M
+      MEMORY_LIMIT: 256M
+      MAX_EXECUTION_TIME: 600
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    restart: always
 
 volumes:
-  mysql-data:
+  mysql_data:

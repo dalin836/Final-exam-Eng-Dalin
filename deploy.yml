@@ -1,22 +1,135 @@
-- name: Deploy with output capture
-  run: |
-    sudo mkdir -p /opt/idcard-management
-    sudo cp target/*.jar /opt/idcard-management/app.jar
+---
+- name: Deploy Spring Boot Application
+  hosts: web
+  connection: docker
+  gather_facts: yes
+  
+  vars:
+    app_name: "idcard-management"
+    deploy_dir: "/opt/{{ app_name }}"
+    app_port: 8001
     
-    # Run and capture output
-    cd /opt/idcard-management
-    sudo java -jar app.jar --server.port=8001 2>&1 | tee app.log &
-    JOB_PID=$!
-    
-    echo "Started with PID: $JOB_PID"
-    sleep 10
-    
-    # Check if process exists
-    if ps -p $JOB_PID > /dev/null 2>&1; then
-      echo "✅ Process running"
-    else
-      echo "❌ Process died"
-      echo "=== Full log ==="
-      cat app.log
-      exit 1
-    fi
+  tasks:
+    - name: Display deployment info
+      debug:
+        msg:
+          - "============================================"
+          - "Deploying {{ app_name }}"
+          - "Version: {{ app_version | default('latest') }}"
+          - "Directory: {{ deploy_dir }}"
+          - "Port: {{ app_port }}"
+          - "============================================"
+
+    - name: Check if Java is installed
+      shell: java -version 2>&1 || echo "Java not found"
+      register: java_check
+      ignore_errors: yes
+
+    - name: Install Java if not present
+      shell: |
+        apt update
+        apt install -y openjdk-21-jdk
+      when: '"not found" in java_check.stdout or "not found" in java_check.stderr'
+      ignore_errors: yes
+
+    - name: Create deployment directory
+      file:
+        path: "{{ deploy_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Create logs directory
+      file:
+        path: "/var/log/{{ app_name }}"
+        state: directory
+        mode: '0755'
+
+    - name: Find JAR file
+      find:
+        paths: "{{ playbook_dir }}/target"
+        patterns: "*.jar"
+        file_type: file
+      register: jar_files
+      delegate_to: localhost
+      run_once: yes
+
+    - name: Fail if no JAR
+      fail:
+        msg: "No JAR file found in target/"
+      when: jar_files.files | length == 0
+
+    - name: Get latest JAR
+      set_fact:
+        jar_file: "{{ jar_files.files | sort(attribute='mtime') | last }}"
+      delegate_to: localhost
+      run_once: yes
+
+    - name: Copy JAR to container
+      copy:
+        src: "{{ jar_file.path }}"
+        dest: "{{ deploy_dir }}/{{ app_name }}.jar"
+        mode: '0644'
+
+    - name: Copy application.properties
+      copy:
+        src: "{{ playbook_dir }}/src/main/resources/application.properties"
+        dest: "{{ deploy_dir }}/application.properties"
+        mode: '0644'
+      ignore_errors: yes
+
+    - name: Stop existing application
+      shell: |
+        pkill -f {{ app_name }}.jar || true
+        sleep 2
+      ignore_errors: yes
+
+    - name: Start application
+      shell: |
+        cd {{ deploy_dir }}
+        nohup java -jar {{ app_name }}.jar \
+          --server.port={{ app_port }} \
+          --spring.config.location={{ deploy_dir }}/application.properties \
+          > /var/log/{{ app_name }}/app.log 2>&1 &
+      async: 10
+      poll: 2
+
+    - name: Wait for application to start
+      wait_for:
+        port: "{{ app_port }}"
+        timeout: 60
+        delay: 5
+      ignore_errors: yes
+
+    - name: Check health endpoint
+      shell: curl -s http://localhost:{{ app_port }}/actuator/health
+      register: health
+      ignore_errors: yes
+      until: health.stdout != ""
+      retries: 10
+      delay: 3
+
+    - name: Show health status
+      debug:
+        msg: "Health check: {{ health.stdout }}"
+
+    - name: Deployment complete
+      debug:
+        msg: |
+          ============================================
+          ✅ DEPLOYMENT SUCCESSFUL
+          ============================================
+          Application: {{ app_name }}
+          Port: {{ app_port }}
+          Health: http://localhost:{{ app_port }}/actuator/health
+          Logs: /var/log/{{ app_name }}/app.log
+          ============================================
+
+    - name: Show application logs
+      shell: tail -30 /var/log/{{ app_name }}/app.log
+      register: app_log
+      ignore_errors: yes
+
+    - name: Display logs
+      debug:
+        msg: "{{ app_log.stdout_lines }}"
+      when: app_log.stdout is defined

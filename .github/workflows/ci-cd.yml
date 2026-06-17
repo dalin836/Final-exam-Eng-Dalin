@@ -3,37 +3,189 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
   workflow_dispatch:
 
+env:
+  APP_NAME: idcard-management
+  JAVA_VERSION: 21
+
 jobs:
-  build-and-deploy:
+  build-and-test:
+    name: Build and Test
     runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: Hello@123
+          MYSQL_DATABASE: B-Eng_Dalin-db
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up JDK 21
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
-          java-version: 21
+          java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
           cache: maven
-      - name: Build
-        run: mvn clean package -DskipTests=true
-      - name: Deploy
+
+      - name: Get commit information
+        id: commit_info
         run: |
-          sudo mkdir -p /opt/idcard-management
-          sudo cp target/*.jar /opt/idcard-management/app.jar
-          sudo pkill -f app.jar || true
-          cd /opt/idcard-management
-          sudo ${JAVA_HOME}/bin/java -jar app.jar --server.port=8001 > app.log 2>&1 &
-          sleep 15
-          if pgrep -f app.jar; then
-            echo "✅ Running"
-            curl http://localhost:8001/actuator/health
-          else
-            echo "❌ Failed"
-            cat app.log
-            exit 1
-          fi
-      - name: Show logs
+          echo "COMMIT_AUTHOR=$(git log -1 --pretty=format:'%an')" >> $GITHUB_ENV
+          echo "COMMIT_EMAIL=$(git log -1 --pretty=format:'%ae')" >> $GITHUB_ENV
+          echo "COMMIT_MESSAGE=$(git log -1 --pretty=format:'%s')" >> $GITHUB_ENV
+          echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Build and Test
+        run: |
+          mvn clean compile
+          mvn test
+          mvn package
+
+      - name: Upload test results
         if: always()
-        run: cat /opt/idcard-management/app.log || echo "No log"
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: target/surefire-reports/
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: application-jar
+          path: target/*.jar
+          retention-days: 7
+
+      - name: Send failure notification
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: ❌ BUILD FAILED - ${{ env.APP_NAME }}
+          to: ${{ secrets.ADMIN_EMAIL }},${{ env.COMMIT_EMAIL }}
+          from: GitHub Actions
+          body: |
+            Build failed!
+            
+            Application: ${{ env.APP_NAME }}
+            Commit: ${{ env.COMMIT_HASH }}
+            Author: ${{ env.COMMIT_AUTHOR }}
+            Message: ${{ env.COMMIT_MESSAGE }}
+            Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ignore_cert: true
+
+  deploy:
+    name: Deploy to Web Server
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: application-jar
+          path: target/
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.DEPLOY_PORT }} -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Install Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible sshpass
+
+      - name: Create inventory
+        run: |
+          cat > inventory.ini << 'INV'
+          [web]
+          ${{ secrets.DEPLOY_HOST }} ansible_port=${{ secrets.DEPLOY_PORT }} ansible_user=${{ secrets.DEPLOY_USER }}
+          
+          [web:vars]
+          ansible_connection=ssh
+          ansible_python_interpreter=/usr/bin/python3
+          host_key_checking=False
+          INV
+
+      - name: Test SSH connection
+        run: |
+          ssh -p ${{ secrets.DEPLOY_PORT }} -i ~/.ssh/id_rsa ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "echo 'SSH connection successful'"
+
+      - name: Run Ansible deployment
+        run: |
+          ansible-playbook -i inventory.ini deploy.yml \
+            --extra-vars "app_version=${GITHUB_SHA::7}" \
+            -vvv
+
+      - name: Verify deployment
+        run: |
+          sleep 10
+          for i in {1..10}; do
+            if curl -s -f http://${{ secrets.DEPLOY_HOST }}:${{ secrets.APP_PORT }}/actuator/health > /dev/null 2>&1; then
+              echo "✅ Application is healthy!"
+              curl -s http://${{ secrets.DEPLOY_HOST }}:${{ secrets.APP_PORT }}/actuator/health
+              exit 0
+            fi
+            echo "Attempt $i/10: Application not ready yet..."
+            sleep 3
+          done
+          echo "❌ Health check failed"
+          exit 1
+
+      - name: Send deployment success notification
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: 🚀 DEPLOYMENT SUCCESS - ${{ env.APP_NAME }}
+          to: ${{ secrets.ADMIN_EMAIL }}
+          from: GitHub Actions
+          body: |
+            Application deployed successfully!
+            
+            Application: ${{ env.APP_NAME }}
+            Commit: ${{ env.COMMIT_HASH }}
+            URL: http://${{ secrets.DEPLOY_HOST }}:${{ secrets.APP_PORT }}
+            Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ignore_cert: true
+
+      - name: Send deployment failure notification
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: ❌ DEPLOYMENT FAILED - ${{ env.APP_NAME }}
+          to: ${{ secrets.ADMIN_EMAIL }}
+          from: GitHub Actions
+          body: |
+            Deployment failed!
+            
+            Application: ${{ env.APP_NAME }}
+            Commit: ${{ env.COMMIT_HASH }}
+            Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ignore_cert: true
