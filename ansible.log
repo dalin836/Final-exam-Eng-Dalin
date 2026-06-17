@@ -163,3 +163,10 @@ Use `ansible_facts["fact_name"]` (no `ansible_` prefix) instead.
 2026-06-17 23:45:54,530 p=629780 u=dalin n=ansible INFO| PLAY [Deploy Spring Boot Application to Web Server] *************************************************************************************************************************************
 2026-06-17 23:45:54,530 p=629780 u=dalin n=ansible INFO| skipping: no hosts matched
 2026-06-17 23:45:54,530 p=629780 u=dalin n=ansible INFO| PLAY RECAP ******************************************************************************************************************************************************************************
+2026-06-18 01:04:17,304 p=666638 u=dalin n=ansible WARNING| [WARNING]: provided hosts list is empty, only localhost is available. Note that the implicit localhost does not match 'all'
+
+2026-06-18 01:04:17,749 p=666638 u=dalin n=ansible WARNING| [WARNING]: Could not match supplied host pattern, ignoring: web
+
+2026-06-18 01:04:17,751 p=666638 u=dalin n=ansible INFO| PLAY [Deploy Spring Boot Application] ******************************************
+2026-06-18 01:04:17,751 p=666638 u=dalin n=ansible INFO| skipping: no hosts matched
+2026-06-18 01:04:17,751 p=666638 u=dalin n=ansible INFO| PLAY RECAP *********************************************************************
